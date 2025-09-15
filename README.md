@@ -72,8 +72,9 @@ import (
 	"fmt"
 
 	pb "example.com/mygrpcserver/helloworld"
+	"github.com/dunglas/frankenphp"
 	phpGrpc "github.com/dunglas/frankenphp-grpc"
-	mapstructure "github.com/go-viper/mapstructure/v2"
+	"github.com/go-viper/mapstructure/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -109,7 +110,7 @@ func (s *server) SayHello(_ context.Context, in *pb.HelloRequest) (*pb.HelloRepl
 
     // Convert the PHP response (a map) back to a HelloReply struct
 	var response pb.HelloReply
-	if err := mapstructure.Decode(phpResponse, &response); err != nil {
+	if err := mapstructure.Decode(phpResponse.(frankenphp.AssociativeArray).Map, &response); err != nil {
 		return nil, err
 	}
 
