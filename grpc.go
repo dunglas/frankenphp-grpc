@@ -15,8 +15,8 @@ func init() {
 	frankenphp.RegisterExtension(unsafe.Pointer(&C.ext_module_entry))
 }
 
-func HandleRequest(request map[string]any) map[string]any {
-	responseChan := make(chan map[string]any)
+func HandleRequest(request any) any {
+	responseChan := make(chan any)
 
 	w.handles <- cgo.NewHandle(message{
 		request:      request,
@@ -29,8 +29,8 @@ func HandleRequest(request map[string]any) map[string]any {
 type message struct {
 	runtime.Pinner
 
-	request      map[string]any
-	responseChan chan map[string]any
+	request      any
+	responseChan chan any
 }
 
 //export go_get_request
@@ -40,7 +40,7 @@ func go_get_request(handle unsafe.Pointer) unsafe.Pointer {
 
 	m := cgo.Handle(hUint).Value().(message)
 
-	mp := frankenphp.PHPMap(m.request)
+	mp := frankenphp.PHPValue(m.request)
 	m.Pin(mp)
 
 	return mp
@@ -54,5 +54,5 @@ func go_send_response(handle unsafe.Pointer, response unsafe.Pointer) {
 	m := cgo.Handle(hUint).Value().(message)
 	m.Unpin()
 
-	m.responseChan <- frankenphp.GoMap(response)
+	m.responseChan <- frankenphp.GoValue(response)
 }
