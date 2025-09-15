@@ -21,13 +21,14 @@ func HandleRequest(request any) any {
 	w.handles <- cgo.NewHandle(message{
 		request:      request,
 		responseChan: responseChan,
+		pinner:       &runtime.Pinner{},
 	})
 
 	return <-responseChan
 }
 
 type message struct {
-	runtime.Pinner
+	pinner *runtime.Pinner
 
 	request      any
 	responseChan chan any
@@ -41,7 +42,7 @@ func go_get_request(handle unsafe.Pointer) unsafe.Pointer {
 	m := cgo.Handle(hUint).Value().(message)
 
 	mp := frankenphp.PHPValue(m.request)
-	m.Pin(mp)
+	m.pinner.Pin(mp)
 
 	return mp
 }
@@ -52,7 +53,7 @@ func go_send_response(handle unsafe.Pointer, response unsafe.Pointer) {
 	hUint, _ := strconv.ParseUint(hStr, 10, 64)
 
 	m := cgo.Handle(hUint).Value().(message)
-	m.Unpin()
+	m.pinner.Unpin()
 
 	m.responseChan <- frankenphp.GoValue(response)
 }
