@@ -8,6 +8,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
+	"github.com/dunglas/frankenphp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -46,6 +47,8 @@ func (g *Grpc) Provision(ctx caddy.Context) error {
 	if g.Address == "" {
 		g.Address = ":50051"
 	}
+
+	frankenphp.RegisterExternalWorker(w)
 
 	return nil
 }

@@ -12,7 +12,6 @@ var w = &worker{
 }
 
 func init() {
-	frankenphp.RegisterExternalWorker(w)
 }
 
 type worker struct {
