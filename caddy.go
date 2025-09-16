@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"runtime"
+	"strconv"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -116,6 +117,22 @@ func (g *Grpc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 
 				g.Address = d.Val()
+			case "worker":
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+
+				g.Worker = d.Val()
+			case "min_threads":
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+
+				t, err := strconv.Atoi(d.Val())
+				if err != nil {
+					return nil
+				}
+				g.MinThreads = t
 			default:
 				return fmt.Errorf(`unrecognized subdirective "%s"`, d.Val())
 			}

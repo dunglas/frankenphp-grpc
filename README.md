@@ -160,7 +160,9 @@ Create a `Caddyfile` in the same directory as the FrankenPHP binary we'll build 
 {
 	frankenphp
 	grpc {
-		address :50051
+		address :50051 # Optional
+		worker grpc-worker.php # Optional
+		min_threads 50 # Optional, defaults to runtime.NumCPU()
 	}
 }
 ```
