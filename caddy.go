@@ -3,6 +3,7 @@ package grpc
 import (
 	"fmt"
 	"net"
+	"runtime"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -25,7 +26,9 @@ func RegisterGrpcServerFactory(f func() *grpc.Server) {
 }
 
 type Grpc struct {
-	Address string `json:"address,omitempty"`
+	Address    string `json:"address,omitempty"`
+	MinThreads int    `json:"min_threads,omitempty"`
+	Worker     string `json:"worker,omitempty"`
 
 	ctx    caddy.Context
 	logger *zap.Logger
@@ -47,6 +50,17 @@ func (g *Grpc) Provision(ctx caddy.Context) error {
 	if g.Address == "" {
 		g.Address = ":50051"
 	}
+
+	if g.MinThreads <= 0 {
+		g.MinThreads = runtime.NumCPU()
+	}
+
+	if g.Worker == "" {
+		g.Worker = "grpc-worker.php"
+	}
+
+	w.minThread = g.MinThreads
+	w.filename = g.Worker
 
 	frankenphp.RegisterExternalWorker(w)
 

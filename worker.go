@@ -11,23 +11,22 @@ var w = &worker{
 	messages: make(chan message),
 }
 
-func init() {
-}
-
 type worker struct {
-	messages chan message
+	messages  chan message
+	minThread int
+	filename  string
 }
 
-func (w *worker) Name() string {
+func (*worker) Name() string {
 	return "m#Grpc"
 }
 
 func (w *worker) FileName() string {
-	return "grpc-worker.php"
+	return w.filename
 }
 
 func (w *worker) GetMinThreads() int {
-	return 1
+	return w.minThread
 }
 
 func (w *worker) ThreadActivatedNotification(int)   {}
