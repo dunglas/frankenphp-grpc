@@ -15,6 +15,7 @@ Under the hood, this extension uses the [gRPC for Go](https://grpc.io/docs/langu
 * Write gRPC service handlers in Go
 * Write gRPC service handlers in a mix of PHP and Go 🤯
 * All features supported by the [gRPC for Go](https://grpc.io/docs/languages/go/) library
+* Entirely written in Go, no C code!
 * [API Platform](https://api-platform.com) compatibility!
 
 ## Prerequisites
@@ -132,12 +133,10 @@ Create a file named `grpc-worker.php` in the same directory as the FrankenPHP bi
 //require __DIR__ . '/vendor/autoload.php';
 
 // Handler outside the loop for better performance (doing less work)
-$handler = static function ()  {
-    $request = grpc_get_request();
-    
-    // Your business logic here!
+$handler = static function (array $request): array  {
+	// Do something with the gRPC request
 
-    grpc_send_response(['message' => "Hello, {$request['Name']}"]);
+    return ['message' => "Hello, {$request['Name']}"];
 };
 
 $maxRequests = (int)($_SERVER['MAX_REQUESTS'] ?? 0);

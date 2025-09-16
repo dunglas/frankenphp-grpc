@@ -1,17 +1,14 @@
 package grpc
 
-import "C"
 import (
 	"net/http"
 	"net/url"
-	"runtime/cgo"
-	"strconv"
 
 	"github.com/dunglas/frankenphp"
 )
 
 var w = &worker{
-	handles: make(chan cgo.Handle),
+	messages: make(chan message),
 }
 
 func init() {
@@ -19,7 +16,7 @@ func init() {
 }
 
 type worker struct {
-	handles chan cgo.Handle
+	messages chan message
 }
 
 func (w *worker) Name() string {
@@ -43,15 +40,14 @@ func (w *worker) Env() frankenphp.PreparedEnv {
 
 var u = &url.URL{Host: "grpc.alt", Path: "/grpc"}
 
-func (w *worker) ProvideRequest() *frankenphp.WorkerRequest {
-	h := <-w.handles
-	id := strconv.FormatUint(uint64(h), 10)
+func (w *worker) ProvideRequest() *frankenphp.WorkerRequest[any, any] {
+	m := <-w.messages
 
-	return &frankenphp.WorkerRequest{
-		Request: &http.Request{
-			Method: http.MethodPost,
-			URL:    u,
-			Header: http.Header{"ID": []string{id}},
+	return &frankenphp.WorkerRequest[any, any]{
+		Request:            &http.Request{URL: u},
+		CallbackParameters: m.request,
+		AfterFunc: func(callbackReturn any) {
+			m.responseChan <- callbackReturn
 		},
 	}
 }
