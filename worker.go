@@ -1,37 +1,32 @@
 package grpc
 
-import "C"
 import (
 	"net/http"
 	"net/url"
-	"runtime/cgo"
-	"strconv"
 
 	"github.com/dunglas/frankenphp"
 )
 
 var w = &worker{
-	handles: make(chan cgo.Handle),
-}
-
-func init() {
-	frankenphp.RegisterExternalWorker(w)
+	messages: make(chan message),
 }
 
 type worker struct {
-	handles chan cgo.Handle
+	messages  chan message
+	minThread int
+	filename  string
 }
 
-func (w *worker) Name() string {
+func (*worker) Name() string {
 	return "m#Grpc"
 }
 
 func (w *worker) FileName() string {
-	return "grpc-worker.php"
+	return w.filename
 }
 
 func (w *worker) GetMinThreads() int {
-	return 1
+	return w.minThread
 }
 
 func (w *worker) ThreadActivatedNotification(int)   {}
@@ -43,15 +38,14 @@ func (w *worker) Env() frankenphp.PreparedEnv {
 
 var u = &url.URL{Host: "grpc.alt", Path: "/grpc"}
 
-func (w *worker) ProvideRequest() *frankenphp.WorkerRequest {
-	h := <-w.handles
-	id := strconv.FormatUint(uint64(h), 10)
+func (w *worker) ProvideRequest() *frankenphp.WorkerRequest[any, any] {
+	m := <-w.messages
 
-	return &frankenphp.WorkerRequest{
-		Request: &http.Request{
-			Method: http.MethodPost,
-			URL:    u,
-			Header: http.Header{"ID": []string{id}},
+	return &frankenphp.WorkerRequest[any, any]{
+		Request:            &http.Request{URL: u},
+		CallbackParameters: m.request,
+		AfterFunc: func(callbackReturn any) {
+			m.responseChan <- callbackReturn
 		},
 	}
 }

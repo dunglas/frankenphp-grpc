@@ -3,11 +3,14 @@ package grpc
 import (
 	"fmt"
 	"net"
+	"runtime"
+	"strconv"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
+	"github.com/dunglas/frankenphp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -24,7 +27,9 @@ func RegisterGrpcServerFactory(f func() *grpc.Server) {
 }
 
 type Grpc struct {
-	Address string `json:"address,omitempty"`
+	Address    string `json:"address,omitempty"`
+	MinThreads int    `json:"min_threads,omitempty"`
+	Worker     string `json:"worker,omitempty"`
 
 	ctx    caddy.Context
 	logger *zap.Logger
@@ -46,6 +51,19 @@ func (g *Grpc) Provision(ctx caddy.Context) error {
 	if g.Address == "" {
 		g.Address = ":50051"
 	}
+
+	if g.MinThreads <= 0 {
+		g.MinThreads = runtime.NumCPU()
+	}
+
+	if g.Worker == "" {
+		g.Worker = "grpc-worker.php"
+	}
+
+	w.minThread = g.MinThreads
+	w.filename = g.Worker
+
+	frankenphp.RegisterExternalWorker(w)
 
 	return nil
 }
@@ -99,6 +117,22 @@ func (g *Grpc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 
 				g.Address = d.Val()
+			case "worker":
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+
+				g.Worker = d.Val()
+			case "min_threads":
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+
+				t, err := strconv.Atoi(d.Val())
+				if err != nil {
+					return nil
+				}
+				g.MinThreads = t
 			default:
 				return fmt.Errorf(`unrecognized subdirective "%s"`, d.Val())
 			}
