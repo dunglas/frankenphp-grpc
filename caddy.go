@@ -3,16 +3,13 @@ package grpc
 import (
 	"fmt"
 	"net"
-	"runtime"
 	"strconv"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
-	"github.com/dunglas/frankenphp"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -20,20 +17,15 @@ func init() {
 	httpcaddyfile.RegisterGlobalOption("grpc", parseGlobalOption)
 }
 
-var grpcServerFactory func() *grpc.Server
-
-func RegisterGrpcServerFactory(f func() *grpc.Server) {
-	grpcServerFactory = f
-}
-
+// Grpc is a Caddy app that runs a standalone, native gRPC server.
+// It embeds grpcApp to share worker and server configuration.
 type Grpc struct {
-	Address    string `json:"address,omitempty"`
-	MinThreads int    `json:"min_threads,omitempty"`
-	Worker     string `json:"worker,omitempty"`
+	grpcApp
 
-	ctx    caddy.Context
-	logger *zap.Logger
-	srv    *grpc.Server
+	// The address to listen on for native gRPC connections.
+	Address string `json:"address,omitempty"`
+
+	ctx caddy.Context
 }
 
 // CaddyModule returns the Caddy module information.
@@ -44,104 +36,88 @@ func (Grpc) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
+// Provision sets up the gRPC app. It calls the embedded grpcApp's
+// Provision method to handle the common setup.
 func (g *Grpc) Provision(ctx caddy.Context) error {
-	g.logger = ctx.Logger()
 	g.ctx = ctx
-
 	if g.Address == "" {
-		g.Address = ":50051"
+		g.Address = ":50051" // Default gRPC port
 	}
 
-	if g.MinThreads <= 0 {
-		g.MinThreads = runtime.NumCPU()
-	}
-
-	if g.Worker == "" {
-		g.Worker = "grpc-worker.php"
-	}
-
-	w.minThread = g.MinThreads
-	w.filename = g.Worker
-
-	frankenphp.RegisterExternalWorker(w)
-
-	return nil
+	// Provision the shared gRPC server and worker
+	return g.grpcApp.Provision(ctx)
 }
 
-func (g Grpc) Start() error {
+// Start runs the native gRPC server in a goroutine.
+func (g *Grpc) Start() error {
 	address, err := caddy.ParseNetworkAddress(g.Address)
 	if err != nil {
-		return err
+		return fmt.Errorf("parsing gRPC address '%s': %w", g.Address, err)
 	}
 
 	lnAny, err := address.Listen(g.ctx, 0, net.ListenConfig{})
 	if err != nil {
-		return err
+		return fmt.Errorf("listening on gRPC address '%s': %w", g.Address, err)
 	}
-
 	ln := lnAny.(net.Listener)
 
-	if grpcServerFactory == nil {
-		return fmt.Errorf("no gRPC server factory registered")
-	}
-
-	g.srv = grpcServerFactory()
 	go func() {
+		g.logger.Info("starting native gRPC server", zap.String("address", g.Address))
 		if err := g.srv.Serve(ln); err != nil {
-			g.logger.Panic("failed to start gRPC server", zap.Error(err))
+			g.logger.Error("native gRPC server failed", zap.Error(err))
 		}
 	}()
 
-	g.logger.Info("gRPC server started", zap.String("address", g.Address))
-
 	return nil
 }
 
-func (g Grpc) Stop() error {
+// Stop gracefully stops the native gRPC server.
+func (g *Grpc) Stop() error {
 	if g.srv != nil {
+		g.logger.Info("stopping native gRPC server")
 		g.srv.GracefulStop()
 		g.srv = nil
 	}
-
 	return nil
 }
 
+// UnmarshalCaddyfile parses the `grpc` global option from the Caddyfile.
 func (g *Grpc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
-		for d.NextBlock(0) {
-			// when adding a new directive, also update the allowedDirectives error message
-			switch d.Val() {
-			case "address":
-				if !d.NextArg() {
-					return d.ArgErr()
+		// First, parse app-specific directives
+		if d.Val() == "grpc" { // expecting `grpc { ... }`
+			for d.NextBlock(0) {
+				switch d.Val() {
+				case "address":
+					if !d.NextArg() {
+						return d.ArgErr()
+					}
+					g.Address = d.Val()
+				// Handle common directives directly
+				case "worker":
+					if !d.NextArg() {
+						return d.ArgErr()
+					}
+					g.Worker = d.Val()
+				case "min_threads":
+					if !d.NextArg() {
+						return d.ArgErr()
+					}
+					t, err := strconv.Atoi(d.Val())
+					if err != nil {
+						return err
+					}
+					g.MinThreads = t
+				default:
+					return d.Errf("unrecognized gRPC app directive '%s'", d.Val())
 				}
-
-				g.Address = d.Val()
-			case "worker":
-				if !d.NextArg() {
-					return d.ArgErr()
-				}
-
-				g.Worker = d.Val()
-			case "min_threads":
-				if !d.NextArg() {
-					return d.ArgErr()
-				}
-
-				t, err := strconv.Atoi(d.Val())
-				if err != nil {
-					return nil
-				}
-				g.MinThreads = t
-			default:
-				return fmt.Errorf(`unrecognized subdirective "%s"`, d.Val())
 			}
 		}
 	}
-
 	return nil
 }
 
+// parseGlobalOption configures the gRPC app from a Caddyfile.
 func parseGlobalOption(d *caddyfile.Dispenser, _ any) (any, error) {
 	app := &Grpc{}
 	if err := app.UnmarshalCaddyfile(d); err != nil {
@@ -157,6 +133,7 @@ func parseGlobalOption(d *caddyfile.Dispenser, _ any) (any, error) {
 
 // Interface guards
 var (
-	_ caddy.Module = (*Grpc)(nil)
-	_ caddy.App    = (*Grpc)(nil)
+	_ caddy.Module      = (*Grpc)(nil)
+	_ caddy.App         = (*Grpc)(nil)
+	_ caddy.Provisioner = (*Grpc)(nil)
 )

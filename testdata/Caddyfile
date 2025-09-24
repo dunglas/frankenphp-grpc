@@ -1,7 +1,15 @@
 {
 	debug
 	frankenphp
+	order grpc before reverse_proxy
 	grpc {
 		address :50051
+	}
+}
+
+localhost {
+	route {
+		grpc
+    file_server
 	}
 }
