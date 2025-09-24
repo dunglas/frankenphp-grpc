@@ -1,7 +1,25 @@
 {
 	debug
 	frankenphp
-	grpc {
-		address :50051
+	# order grpc before reverse_proxy
+	# grpc {
+	# 	address :50051
+	# }
+}
+
+localhost {
+	route / {
+		file_server
+	}
+
+	route /bundle.js {
+		file_server
+	}
+	route /bundle.js.map {
+		file_server
+	}
+
+	route {
+		grpc
 	}
 }

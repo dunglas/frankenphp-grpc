@@ -1,0 +1,19 @@
+{
+  "name": "testdata",
+  "version": "1.0.0",
+  "main": "helloworld_grpc_web_pb.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "google-protobuf": "^3.21.4",
+    "grpc-web": "^1.5.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10"
+  }
+}
