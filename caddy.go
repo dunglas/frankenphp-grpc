@@ -134,7 +134,7 @@ func (g *Grpc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				}
 				g.MinThreads = t
 			default:
-				return fmt.Errorf(`unrecognized subdirective "%s"`, d.Val())
+				return d.Errf(`unrecognized subdirective "%s"`, d.Val())
 			}
 		}
 	}
