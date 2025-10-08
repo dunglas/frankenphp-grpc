@@ -180,13 +180,13 @@ func (Handler) CaddyModule() caddy.ModuleInfo {
 func (h *Handler) Provision(ctx caddy.Context) error {
 	grpcAppIface, err := ctx.App("grpc")
 	if err != nil {
-		return fmt.Errorf("getting grpc app: %v. make sure 'grpc' is configured in global options", err)
+		return fmt.Errorf(`unable to get the "grpc" app: %v, make sure "grpc" is configured in global options`, err)
 	}
 	h.app = grpcAppIface.(*Grpc)
 
 	addr, err := net.ResolveTCPAddr("tcp", h.app.Address)
 	if err != nil {
-		return fmt.Errorf("could not resolve grpc app address '%s': %w", h.app.Address, err)
+		return fmt.Errorf(`could not resolve the "grpc" app address %q: %w`, h.app.Address, err)
 	}
 
 	host := "127.0.0.1"
@@ -211,7 +211,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhtt
 	// We check for both gRPC-Web and native gRPC content types.
 	// If it's not a gRPC request, we pass it to the next handler in the chain.
 	isGrpcRequest := r.Method == http.MethodPost &&
-		(strings.HasPrefix(contentType, "application/grpc-web") || strings.HasPrefix(contentType, "application/grpc"))
+		strings.HasPrefix(contentType, "application/grpc"))
 
 	if isGrpcRequest {
 		h.proxy.ServeHTTP(w, r)
@@ -252,5 +252,4 @@ var (
 	_ caddyhttp.MiddlewareHandler = (*Handler)(nil)
 	_ caddy.Provisioner           = (*Handler)(nil)
 )
-
 
