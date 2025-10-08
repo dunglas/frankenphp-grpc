@@ -63,7 +63,7 @@ func (g *Grpc) Provision(ctx caddy.Context) error {
 	w.minThread = g.MinThreads
 	w.filename = g.Worker
 
-	frankenphp.RegisterExternalWorker(w)
+	frankenphp.RegisterWorker(w)
 
 	return nil
 }
