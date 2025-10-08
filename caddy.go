@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"runtime"
 	"strconv"
 	"strings"
@@ -43,8 +41,10 @@ type Grpc struct {
 
 	ctx     caddy.Context
 	logger  *zap.Logger
-	srv     *grpc.Server
 	httpSrv *http.Server
+
+	// webHandler holds the wrapper that handles both gRPC and gRPC-Web requests.
+	webHandler http.Handler
 }
 
 // CaddyModule returns the Caddy module information.
@@ -80,7 +80,18 @@ func (g *Grpc) Provision(ctx caddy.Context) error {
 	return nil
 }
 
+// Start creates the gRPC server instance and starts it listening on the configured address.
 func (g *Grpc) Start() error {
+	if grpcServerFactory == nil {
+		return fmt.Errorf("no gRPC server factory registered")
+	}
+
+	// Create the raw gRPC server.
+	grpcServer := grpcServerFactory()
+
+	// Wrap the gRPC server with the gRPC-Web handler and store it.
+	g.webHandler = &grpcweb.Handler{GRPCServer: grpcServer}
+
 	address, err := caddy.ParseNetworkAddress(g.Address)
 	if err != nil {
 		return err
@@ -93,16 +104,8 @@ func (g *Grpc) Start() error {
 
 	ln := lnAny.(net.Listener)
 
-	if grpcServerFactory == nil {
-		return fmt.Errorf("no gRPC server factory registered")
-	}
-
-	g.srv = grpcServerFactory()
-	// The grpcweb handler wraps the gRPC server. It proxies gRPC-Web requests
-	// and falls back to the underlying gRPC server for native gRPC requests.
-	webHandler := &grpcweb.Handler{GRPCServer: g.srv}
-
-	g.httpSrv = &http.Server{Handler: webHandler}
+	// The background server uses the same web handler.
+	g.httpSrv = &http.Server{Handler: g.webHandler}
 
 	go func() {
 		g.logger.Info("starting gRPC/gRPC-Web server", zap.String("address", g.Address))
@@ -115,11 +118,6 @@ func (g *Grpc) Start() error {
 }
 
 func (g *Grpc) Stop() error {
-	if g.srv != nil {
-		g.srv.GracefulStop()
-		g.srv = nil
-	}
-
 	if g.httpSrv != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -128,7 +126,6 @@ func (g *Grpc) Stop() error {
 		}
 		g.httpSrv = nil
 	}
-
 	return nil
 }
 
@@ -161,15 +158,15 @@ func (g *Grpc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			}
 		}
 	}
-
 	return nil
 }
 
+// Handler is the Caddy HTTP middleware that handles gRPC requests in-process.
 type Handler struct {
-	proxy *httputil.ReverseProxy
-	app   *Grpc
+	app *Grpc
 }
 
+// CaddyModule returns the Caddy module information.
 func (Handler) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID:  "http.handlers.grpc",
@@ -177,47 +174,29 @@ func (Handler) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
+// Provision gets a reference to the gRPC app.
 func (h *Handler) Provision(ctx caddy.Context) error {
 	grpcAppIface, err := ctx.App("grpc")
 	if err != nil {
 		return fmt.Errorf(`unable to get the "grpc" app: %v, make sure "grpc" is configured in global options`, err)
 	}
 	h.app = grpcAppIface.(*Grpc)
-
-	addr, err := net.ResolveTCPAddr("tcp", h.app.Address)
-	if err != nil {
-		return fmt.Errorf(`could not resolve the "grpc" app address %q: %w`, h.app.Address, err)
-	}
-
-	host := "127.0.0.1"
-	if addr.IP != nil && !addr.IP.IsUnspecified() {
-		host = addr.IP.String()
-	}
-
-	target, err := url.Parse("http://" + net.JoinHostPort(host, strconv.Itoa(addr.Port)))
-	if err != nil {
-		return fmt.Errorf("invalid grpc upstream URL: %w", err)
-	}
-
-	h.proxy = httputil.NewSingleHostReverseProxy(target)
-
 	return nil
 }
 
+// ServeHTTP delegates gRPC and gRPC-Web requests to the in-process web handler.
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	contentType := r.Header.Get("Content-Type")
 
-	// This handler is only for gRPC requests.
-	// We check for both gRPC-Web and native gRPC content types.
-	// If it's not a gRPC request, we pass it to the next handler in the chain.
-	isGrpcRequest := r.Method == http.MethodPost &&
-		strings.HasPrefix(contentType, "application/grpc"))
-
-	if isGrpcRequest {
-		h.proxy.ServeHTTP(w, r)
+	// Check if the request is potentially for our gRPC server.
+	if r.Method == http.MethodPost && strings.HasPrefix(contentType, "application/grpc") {
+		// Delegate to the webHandler, which correctly handles both
+		// native gRPC and gRPC-Web requests.
+		h.app.webHandler.ServeHTTP(w, r)
 		return nil
 	}
 
+	// Pass non-gRPC requests to the next handler.
 	return next.ServeHTTP(w, r)
 }
 
