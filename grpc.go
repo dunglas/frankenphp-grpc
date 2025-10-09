@@ -1,17 +1,18 @@
 package grpc
 
+import (
+	"github.com/dunglas/frankenphp"
+)
+
 func HandleRequest(request any) any {
 	responseChan := make(chan any)
 
-	w.messages <- message{
-		request:      request,
-		responseChan: responseChan,
-	}
+	w.InjectRequest(&frankenphp.WorkerRequest{
+		CallbackParameters: request,
+		AfterFunc: func(callbackReturn any) {
+			responseChan <- callbackReturn
+		},
+	})
 
 	return <-responseChan
-}
-
-type message struct {
-	request      any
-	responseChan chan any
 }
