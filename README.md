@@ -174,7 +174,6 @@ Run the server:
 ```console
 XCADDY_DEBUG=1
     CGO_ENABLED=1 \
-	XCADDY_GO_BUILD_FLAGS="-tags=nobadger,nomysql,nopgx" \
 	CGO_CFLAGS="$(php-config --includes) -I/opt/homebrew/include/" \
 	CGO_LDFLAGS="$(php-config --ldflags) $(php-config --libs) -L/opt/homebrew/lib/ -L/usr/lib" \
 	xcaddy build
@@ -185,3 +184,7 @@ XCADDY_DEBUG=1
 Your gRPC server should now be running on `localhost:50051`.
 
 We recommend using [gRPC UI](https://github.com/fullstorydev/grpcui) (a Postman-like GUI for gRPC) to test your server.
+
+## Credits
+
+Created by [Kévin Dunglas](https://dunglas.dev) and sponsored by [Les-Tilleuls.coop](https://les-tilleuls.coop).
