@@ -159,6 +159,16 @@ github.com/dlclark/regexp2 v1.11.5 h1:Q/sSnsKerHeCkc/jSTNq1oCm7KiVgUMZRDUoRu0JQZ
 github.com/dlclark/regexp2 v1.11.5/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/dolthub/maphash v0.1.0 h1:bsQ7JsF4FkkWyrP3oCnFJgrCUAFbFf3kOl4L/QxPDyQ=
 github.com/dolthub/maphash v0.1.0/go.mod h1:gkg4Ch4CdCDu5h6PMriVLawB7koZ+5ijb9puGMV50a4=
+github.com/dunglas/frankenphp v1.9.1/go.mod h1:slnmLpJOOGhGBoCgHJOJ+TYeASgtw5yWzN78hGS9rZU=
+github.com/dunglas/frankenphp v1.9.2-0.20251009121045-5514491a1810 h1:SNR7vHpv0KyW3rvmfiKRdPEgyxy7H+AoFFatMPU1M8E=
+github.com/dunglas/frankenphp v1.9.2-0.20251009121045-5514491a1810/go.mod h1:W2S8Ecm++c1aidHj0v/kczPVj0GxctF91gmxLBUOqro=
+github.com/dunglas/frankenphp v1.9.2-0.20251009134229-e917ab79742c h1:Zn+GPs17yPn1kD8PHBEh3q8EOHyuDsOnL/jqugqLgqE=
+github.com/dunglas/frankenphp v1.9.2-0.20251009134229-e917ab79742c/go.mod h1:W2S8Ecm++c1aidHj0v/kczPVj0GxctF91gmxLBUOqro=
+github.com/dunglas/frankenphp/caddy v1.9.1/go.mod h1:Vjyoxwq3fZXDHCKR1jm4rj1NtWAs6qBQVgmhN8+yLrc=
+github.com/dunglas/frankenphp/caddy v1.9.2-0.20251009121045-5514491a1810 h1:OatsOSyi+h2R7ESipard5f1dDL7qSJPY5mTJWE7azcI=
+github.com/dunglas/frankenphp/caddy v1.9.2-0.20251009121045-5514491a1810/go.mod h1:NRx6wbVGJaq2Hn0irA94YG4lP5/Y1OvDMbBxAuD5Beo=
+github.com/dunglas/frankenphp/caddy v1.9.2-0.20251009134229-e917ab79742c h1:PAb0n+ryfyDi0A1qD/nb+wU0ajtQTHK2qxngA5JoPd8=
+github.com/dunglas/frankenphp/caddy v1.9.2-0.20251009134229-e917ab79742c/go.mod h1:NRx6wbVGJaq2Hn0irA94YG4lP5/Y1OvDMbBxAuD5Beo=
 github.com/dunglas/mercure v0.20.2 h1:zQRJ7QgjtQafOc9q3XtYVDgsfbUokvHeBhiFBpNTiIs=
 github.com/dunglas/mercure v0.20.2/go.mod h1:sJtQEtezUTKlbDCK1Sqgt9sUrcwBNZJxVc6oHkqvt3w=
 github.com/dunglas/mercure/caddy v0.20.2 h1:CGpcT+arSzxr39s2qRvPpS2/yjZV26cElgee+9Au7lg=

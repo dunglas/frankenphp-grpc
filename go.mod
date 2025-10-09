@@ -2,15 +2,10 @@ module github.com/dunglas/frankenphp-grpc
 
 go 1.25.0
 
-replace (
-	github.com/dunglas/frankenphp => ../frankenphp
-	github.com/dunglas/frankenphp/caddy => ../frankenphp/caddy
-)
-
 require (
 	github.com/caddyserver/caddy/v2 v2.10.2
-	github.com/dunglas/frankenphp v1.9.1
-	github.com/dunglas/frankenphp/caddy v1.9.1
+	github.com/dunglas/frankenphp v1.9.2-0.20251009134229-e917ab79742c
+	github.com/dunglas/frankenphp/caddy v1.9.2-0.20251009134229-e917ab79742c
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.76.0
