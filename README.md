@@ -95,7 +95,7 @@ type server struct {
 }
 
 // SayHello implements helloworld.GreeterServer
-func (s *server) SayHello(_ context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
 	if in.Name == "" {
 		return nil, fmt.Errorf("the Name field is required")
 	}
@@ -107,11 +107,14 @@ func (s *server) SayHello(_ context.Context, in *pb.HelloRequest) (*pb.HelloRepl
 	}
 
     // Call the PHP code, pass the map as a PHP associative array
-	phpResponse := phpGrpc.HandleRequest(phpRequest)
+	phpResponse, err := phpGrpc.HandleRequest(ctx, phpRequest)
+        if err != nil {
+        return nil, err
+    }
 
     // Convert the PHP response (a map) back to a HelloReply struct
 	var response pb.HelloReply
-	if err := mapstructure.Decode(phpResponse.(frankenphp.AssociativeArray).Map, &response); err != nil {
+	if err := mapstructure.Decode(phpResponse.(frankenphp.AssociativeArray[any]).Map, &response); err != nil {
 		return nil, err
 	}
 
